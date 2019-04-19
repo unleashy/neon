@@ -2,6 +2,8 @@ module neon.core;
 
 import bindbc.sdl;
 
+import neon.event;
+import neon.graphics;
 import neon.util;
 
 version (NeonNoAutoInit)
@@ -63,7 +65,6 @@ void neonDeinit()
 
 void neonRun(Game)(auto ref Game game)
 {
-    import neon.graphics : Graphics;
     import std.range : isInputRange;
 
     enum hasLoad   = is(typeof((Game g) => g.load(Graphics.init)));
@@ -72,6 +73,17 @@ void neonRun(Game)(auto ref Game game)
 
     // TODO: let the user configure this
     enum msPerUpdate = 10;
+
+    void fireEvents(T)(SDL_Event e) {
+        import std.traits : arity, isFunction, getSymbolsByUDA;
+
+        const ev = T.fromSDLEvent(e);
+        static foreach (handler; getSymbolsByUDA!(Game, On!T)) {
+            static if (isFunction!handler) {
+                mixin("game." ~ __traits(identifier, handler) ~ "(ev);");
+            }
+        }
+    }
 
     auto graphics = new Graphics();
     scope(exit) graphics.deinit();
@@ -99,6 +111,10 @@ void neonRun(Game)(auto ref Game game)
             switch (e.type) {
                 case SDL_QUIT:
                     running = false;
+                    break;
+
+                case SDL_KEYDOWN:
+                    fireEvents!KeyPressedEvent(e);
                     break;
 
                 default: break;
