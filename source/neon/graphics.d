@@ -24,11 +24,39 @@ struct Rect
     int h;
 }
 
+struct Colour
+{
+    ubyte r;
+    ubyte g;
+    ubyte b;
+    ubyte a = 255;
+
+    this(in ubyte r, in ubyte g, in ubyte b, in ubyte a = Colour.init.a)
+    {
+        this.r = r;
+        this.g = g;
+        this.b = b;
+        this.a = a;
+    }
+
+    this(in uint hex)
+    {
+        this(
+            cast(ubyte) (hex >> 24),
+            cast(ubyte) ((hex >> 16) & 0xFF),
+            cast(ubyte) ((hex >> 8) & 0xFF),
+            cast(ubyte) (hex & 0xFF)
+        );
+    }
+}
+
 final class Graphics
 {
     private immutable(char)* name_;
     private SDL_Window* window_;
     private SDL_Renderer* renderer_;
+
+    private Colour clearColour_;
 
     this()
     {
@@ -58,6 +86,17 @@ final class Graphics
         SDL_DestroyWindow(window_);
     }
 
+    void clear()
+    {
+        SDL_SetRenderDrawColor(renderer_, clearColour_.r, clearColour_.g, clearColour_.b, clearColour_.a);
+        enforceSDL(SDL_RenderClear(renderer_) == 0);
+    }
+
+    void present() @nogc nothrow
+    {
+        SDL_RenderPresent(renderer_);
+    }
+
     void showWindow() @nogc nothrow
     {
         SDL_ShowWindow(window_);
@@ -66,6 +105,16 @@ final class Graphics
     void hideWindow() @nogc nothrow
     {
         SDL_HideWindow(window_);
+    }
+
+    Colour clearColour() @property @nogc const nothrow
+    {
+        return clearColour_;
+    }
+
+    void clearColour(in Colour colour) @property @nogc nothrow
+    {
+        clearColour_ = colour;
     }
 
     const(char)[] windowTitle() @property @nogc const nothrow

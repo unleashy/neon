@@ -114,7 +114,11 @@ void neonRun(Game)(auto ref Game game)
         }
 
         static if (hasDraw) {
+            graphics.clear();
+
             game.draw(graphics, lag / msPerUpdate);
+
+            graphics.present();
         }
 
         SDL_Delay(1); // bound it to 1000 fps and greatly reduce CPU usage
