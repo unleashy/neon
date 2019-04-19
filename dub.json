@@ -1,0 +1,17 @@
+{
+	"name": "neon",
+	"authors": [
+		"unleashy"
+	],
+	"description": "neon: thin game engine",
+	"license": "MIT",
+	"copyright": "Copyright © 2018, unleashy",
+
+    "targetPath": "bin",
+
+    "dependencies": {
+        "bindbc-sdl": "~>0.6.1"
+    },
+
+    "versions": ["BindSDL_Image"]
+}
