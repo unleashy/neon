@@ -60,3 +60,59 @@ void neonDeinit()
 
     unloadSDL();
 }
+
+void neonRun(Game)(auto ref Game game)
+{
+    import neon.graphics : Graphics;
+
+    enum hasLoad   = is(typeof((Game g) => g.load(Graphics.init)));
+    enum hasUpdate = is(typeof((Game g) => g.update()));
+    enum hasDraw   = is(typeof((Game g) => g.draw(Graphics.init, float.init)));
+
+    // TODO: let the user configure this
+    enum msPerUpdate = 10;
+
+    auto graphics = new Graphics();
+
+    static if (hasLoad) {
+        game.load(graphics);
+    }
+
+    bool running = true;
+    uint previousTime = SDL_GetTicks();
+    float lag = 0.0;
+
+    while (running) {
+        immutable currentTime = SDL_GetTicks();
+        immutable elapsedTime = currentTime - previousTime;
+        previousTime = currentTime;
+        lag += elapsedTime;
+
+        // TODO: handle events properly
+        SDL_Event e;
+
+        while (SDL_PollEvent(&e)) {
+            switch (e.type) {
+                case SDL_QUIT:
+                    running = false;
+                    break;
+
+                default: break;
+            }
+        }
+
+        static if (hasUpdate) {
+            uint maxIters = 5;
+            while (lag >= msPerUpdate && --maxIters > 0) {
+                game.update();
+                lag -= msPerUpdate;
+            }
+        }
+
+        static if (hasDraw) {
+            game.draw(graphics, lag / msPerUpdate);
+        }
+
+        SDL_Delay(1); // bound it to 1000 fps and greatly reduce CPU usage
+    }
+}
