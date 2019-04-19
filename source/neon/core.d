@@ -64,6 +64,7 @@ void neonDeinit()
 void neonRun(Game)(auto ref Game game)
 {
     import neon.graphics : Graphics;
+    import std.range : isInputRange;
 
     enum hasLoad   = is(typeof((Game g) => g.load(Graphics.init)));
     enum hasUpdate = is(typeof((Game g) => g.update()));
@@ -73,6 +74,7 @@ void neonRun(Game)(auto ref Game game)
     enum msPerUpdate = 10;
 
     auto graphics = new Graphics();
+    scope(exit) graphics.deinit();
 
     static if (hasLoad) {
         game.load(graphics);
@@ -81,6 +83,8 @@ void neonRun(Game)(auto ref Game game)
     bool running = true;
     uint previousTime = SDL_GetTicks();
     float lag = 0.0;
+
+    graphics.showWindow();
 
     while (running) {
         immutable currentTime = SDL_GetTicks();

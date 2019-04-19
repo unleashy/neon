@@ -1,8 +1,97 @@
 module neon.graphics;
 
+import bindbc.sdl;
+
 import neon.util;
+
+struct Dimension
+{
+    uint width;
+    uint height;
+}
+
+struct Point
+{
+    int x;
+    int y;
+}
+
+struct Rect
+{
+    int x;
+    int y;
+    int w;
+    int h;
+}
 
 final class Graphics
 {
+    private immutable(char)* name_;
+    private SDL_Window* window_;
+    private SDL_Renderer* renderer_;
 
+    this()
+    {
+        import std.string : toStringz;
+
+        name_ = toStringz("neon");
+
+        window_ = SDL_CreateWindow(
+            name_,
+            SDL_WINDOWPOS_CENTERED,
+            SDL_WINDOWPOS_CENTERED,
+            640,
+            480,
+            SDL_WINDOW_HIDDEN
+        );
+
+        enforceSDL(window_ !is null);
+
+        renderer_ = SDL_CreateRenderer(window_, -1, cast(SDL_RendererFlags) 0);
+
+        enforceSDL(renderer_ !is null);
+    }
+
+    package void deinit() @nogc nothrow
+    {
+        SDL_DestroyRenderer(renderer_);
+        SDL_DestroyWindow(window_);
+    }
+
+    void showWindow() @nogc nothrow
+    {
+        SDL_ShowWindow(window_);
+    }
+
+    void hideWindow() @nogc nothrow
+    {
+        SDL_HideWindow(window_);
+    }
+
+    const(char)[] windowTitle() @property @nogc const nothrow
+    {
+        import std.string : fromStringz;
+
+        return fromStringz(SDL_GetWindowTitle(cast(SDL_Window*) window_));
+    }
+
+    void windowTitle(in string title) @property nothrow
+    {
+        import std.string : toStringz;
+
+        name_ = toStringz(title);
+        SDL_SetWindowTitle(window_, name_);
+    }
+
+    Dimension windowSize() @property @nogc const nothrow
+    {
+        int width, height;
+        SDL_GetWindowSize(cast(SDL_Window*) window_, &width, &height);
+        return Dimension(cast(uint) width, cast(uint) height);
+    }
+
+    void windowSize(in Dimension dim) @property @nogc nothrow
+    {
+        SDL_SetWindowSize(window_, cast(int) dim.width, cast(int) dim.height);
+    }
 }
