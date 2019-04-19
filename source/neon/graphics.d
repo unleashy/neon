@@ -97,6 +97,31 @@ final class Graphics
         SDL_RenderPresent(renderer_);
     }
 
+    auto withColour(in Colour colour)
+    {
+        static struct BoundColourGraphics
+        {
+            Graphics graphics;
+            Colour colour;
+
+            auto opDispatch(string funName, Args...)(Args args)
+            {
+                SDL_SetRenderDrawColor(
+                    graphics.renderer_, colour.r, colour.g, colour.b, colour.a
+                );
+                return mixin("graphics." ~ funName ~ "(args)");
+            }
+        }
+
+        return BoundColourGraphics(this, colour);
+    }
+
+    void fillRect(in Rect rect)
+    {
+        SDL_Rect sdlR = cast(SDL_Rect) rect;
+        SDL_RenderFillRect(renderer_, &sdlR);
+    }
+
     void showWindow() @nogc nothrow
     {
         SDL_ShowWindow(window_);
