@@ -56,6 +56,7 @@ final class Graphics
     private SDL_Window* window_;
     private SDL_Renderer* renderer_;
 
+    private Colour drawColour_;
     private Colour clearColour_;
 
     this()
@@ -106,10 +107,24 @@ final class Graphics
 
             auto opDispatch(string funName, Args...)(Args args)
             {
-                SDL_SetRenderDrawColor(
-                    graphics.renderer_, colour.r, colour.g, colour.b, colour.a
-                );
-                return mixin("graphics." ~ funName ~ "(args)");
+                enum fun = "graphics." ~ funName ~ "(args)";
+                enum isVoid = is(typeof(mixin(fun)) == void);
+
+                immutable prevColour = graphics.drawColour;
+
+                graphics.drawColour = colour;
+
+                static if (isVoid) {
+                    mixin(fun ~ ";");
+                } else {
+                    auto result = mixin(fun);
+                }
+
+                graphics.drawColour = prevColour;
+
+                static if (!isVoid) {
+                    return result;
+                }
             }
         }
 
@@ -130,6 +145,17 @@ final class Graphics
     void hideWindow() @nogc nothrow
     {
         SDL_HideWindow(window_);
+    }
+
+    Colour drawColour() @property @nogc const nothrow
+    {
+        return drawColour_;
+    }
+
+    void drawColour(in Colour colour) @property @nogc nothrow
+    {
+        SDL_SetRenderDrawColor(renderer_, colour.r, colour.g, colour.b, colour.a);
+        drawColour_ = colour;
     }
 
     Colour clearColour() @property @nogc const nothrow
