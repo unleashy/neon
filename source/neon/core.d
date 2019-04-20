@@ -83,7 +83,8 @@ void neonDeinit()
 
 void neonRun(Game)(auto ref Game game)
 {
-    import std.range : isInputRange;
+    import std.range  : isInputRange;
+    import std.traits : ReturnType;
 
     enum hasLoad   = is(typeof((Game g) => g.load(Graphics.init)));
     enum hasUpdate = is(typeof((Game g) => g.update()));
@@ -146,7 +147,13 @@ void neonRun(Game)(auto ref Game game)
         static if (hasUpdate) {
             uint maxIters = 5;
             while (lag >= msPerUpdate && --maxIters > 0) {
-                game.update();
+
+                static if (is(ReturnType!(game.update) == bool)) {
+                    running = game.update();
+                } else {
+                    game.update();
+                }
+
                 lag -= msPerUpdate;
             }
         }
