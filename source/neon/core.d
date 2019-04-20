@@ -5,6 +5,7 @@ import bindbc.sdl.image;
 
 import neon.event;
 import neon.graphics;
+import neon.input;
 import neon.util;
 
 version (NeonNoAutoInit)
@@ -85,6 +86,7 @@ struct Neon
 {
 @safe static:
     private Graphics graphics_;
+    private Input input_;
 
     Graphics graphics() @nogc nothrow
         out (r; r !is null)
@@ -96,6 +98,18 @@ struct Neon
         in (graphics !is null)
     {
         graphics_ = graphics;
+    }
+
+    Input input() @nogc nothrow
+        out (r; r !is null)
+    {
+        return input_;
+    }
+
+    void input(Input input) @nogc nothrow
+        in (input !is null)
+    {
+        input_ = input;
     }
 }
 
@@ -125,6 +139,8 @@ void neonRun(Game)(auto ref Game game)
     Neon.graphics = new Graphics();
     scope(exit) Neon.graphics.deinit();
 
+    Neon.input = new Input();
+
     static if (hasLoad) {
         game.load();
     }
@@ -151,10 +167,12 @@ void neonRun(Game)(auto ref Game game)
                     break;
 
                 case SDL_KEYDOWN:
+                    Neon.input.keyDown(e.key.keysym.scancode);
                     fireEvents!KeyPressedEvent(e);
                     break;
 
                 case SDL_KEYUP:
+                    Neon.input.keyUp(e.key.keysym.scancode);
                     fireEvents!KeyReleasedEvent(e);
                     break;
 
