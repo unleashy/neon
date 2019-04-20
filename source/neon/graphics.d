@@ -55,6 +55,16 @@ struct Image
 {
     private SDL_Texture* tex_;
     private Dimension dim_;
+
+    uint width() @safe @property @nogc const nothrow pure
+    {
+        return dim_.width;
+    }
+
+    uint height() @safe @property @nogc const nothrow pure
+    {
+        return dim_.height;
+    }
 }
 
 final class Graphics
@@ -158,7 +168,7 @@ final class Graphics
 
     void draw(Image image, in Coord at)
     {
-        SDL_Rect rect = SDL_Rect(at.x, at.y, image.dim_.width, image.dim_.height);
+        SDL_Rect rect = SDL_Rect(at.x, at.y, image.width, image.height);
         SDL_RenderCopy(renderer_, image.tex_, null, &rect);
     }
 
