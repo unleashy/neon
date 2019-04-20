@@ -75,7 +75,7 @@ void neonRun(Game)(auto ref Game game)
     enum msPerUpdate = 10;
 
     void fireEvents(T)(SDL_Event e) {
-        import std.traits : arity, isFunction, getSymbolsByUDA;
+        import std.traits : isFunction, getSymbolsByUDA, getUDAs;
 
         const ev = T.fromSDLEvent(e);
         static foreach (handler; getSymbolsByUDA!(Game, On!T)) {
@@ -115,6 +115,10 @@ void neonRun(Game)(auto ref Game game)
 
                 case SDL_KEYDOWN:
                     fireEvents!KeyPressedEvent(e);
+                    break;
+
+                case SDL_KEYUP:
+                    fireEvents!KeyReleasedEvent(e);
                     break;
 
                 default: break;
