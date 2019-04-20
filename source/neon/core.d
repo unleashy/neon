@@ -1,6 +1,7 @@
 module neon.core;
 
 import bindbc.sdl;
+import bindbc.sdl.image;
 
 import neon.event;
 import neon.graphics;
@@ -46,7 +47,22 @@ void neonInit(in uint sdlFlags = SDL_INIT_EVERYTHING)
         throw new NeonException(msg);
     }
 
+    immutable actualImgSupport = loadSDLImage();
+    if (actualImgSupport != sdlImageSupport) {
+        immutable msg = {
+            if (actualImgSupport == SDLImageSupport.noLibrary) {
+                return "This application requires the SDL_Image library.";
+            } else {
+                return "The version of the SDL_Image library on your system is " ~
+                       "too low. Please upgrade.";
+            }
+        }();
+
+        throw new NeonException(msg);
+    }
+
     enforceSDL(SDL_Init(sdlFlags) == 0);
+    enforceSDL(IMG_Init(IMG_INIT_PNG) == IMG_INIT_PNG);
 
     hasInit_ = true;
 }
@@ -58,8 +74,10 @@ void neonInit(in uint sdlFlags = SDL_INIT_EVERYTHING)
 void neonDeinit()
     in (hasInit_)
 {
+    IMG_Quit();
     SDL_Quit();
 
+    unloadSDLImage();
     unloadSDL();
 }
 

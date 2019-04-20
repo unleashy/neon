@@ -1,6 +1,7 @@
 module neon.graphics;
 
 import bindbc.sdl;
+import bindbc.sdl.image;
 
 import neon.util;
 
@@ -48,6 +49,12 @@ struct Colour
             cast(ubyte) (hex & 0xFF)
         );
     }
+}
+
+struct Image
+{
+    private SDL_Texture* tex_;
+    private Dimension dim_;
 }
 
 final class Graphics
@@ -98,6 +105,24 @@ final class Graphics
         SDL_RenderPresent(renderer_);
     }
 
+    Image loadImage(in string path)
+    {
+        import std.exception : enforce;
+        import std.file      : exists;
+        import std.string    : toStringz;
+
+        enforce!NeonException(exists(path), "given image path '" ~ path ~ "' does not exist");
+
+        SDL_Surface* surf = IMG_Load(toStringz(path));
+        enforceSDL(surf !is null);
+        scope(exit) SDL_FreeSurface(surf);
+
+        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer_, surf);
+        enforceSDL(tex !is null);
+
+        return Image(tex, Dimension(surf.w, surf.h));
+    }
+
     auto withColour(in Colour colour)
     {
         static struct BoundColourGraphics
@@ -129,6 +154,12 @@ final class Graphics
         }
 
         return BoundColourGraphics(this, colour);
+    }
+
+    void draw(Image image, in Coord at)
+    {
+        SDL_Rect rect = SDL_Rect(at.x, at.y, image.dim_.width, image.dim_.height);
+        SDL_RenderCopy(renderer_, image.tex_, null, &rect);
     }
 
     void fillRect(in Rect rect)
