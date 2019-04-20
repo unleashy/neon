@@ -10,7 +10,7 @@ struct Dimension
     uint height;
 }
 
-struct Point
+struct Coord
 {
     int x;
     int y;
