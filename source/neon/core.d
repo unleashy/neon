@@ -81,14 +81,32 @@ void neonDeinit()
     unloadSDL();
 }
 
+struct Neon
+{
+@safe static:
+    private Graphics graphics_;
+
+    Graphics graphics() @nogc nothrow
+        out (r; r !is null)
+    {
+        return graphics_;
+    }
+
+    void graphics(Graphics graphics) @nogc nothrow
+        in (graphics !is null)
+    {
+        graphics_ = graphics;
+    }
+}
+
 void neonRun(Game)(auto ref Game game)
 {
     import std.range  : isInputRange;
     import std.traits : ReturnType;
 
-    enum hasLoad   = is(typeof((Game g) => g.load(Graphics.init)));
+    enum hasLoad   = is(typeof((Game g) => g.load()));
     enum hasUpdate = is(typeof((Game g) => g.update()));
-    enum hasDraw   = is(typeof((Game g) => g.draw(Graphics.init, float.init)));
+    enum hasDraw   = is(typeof((Game g) => g.draw(float.init)));
 
     // TODO: let the user configure this
     enum msPerUpdate = 10;
@@ -104,18 +122,18 @@ void neonRun(Game)(auto ref Game game)
         }
     }
 
-    auto graphics = new Graphics();
-    scope(exit) graphics.deinit();
+    Neon.graphics = new Graphics();
+    scope(exit) Neon.graphics.deinit();
 
     static if (hasLoad) {
-        game.load(graphics);
+        game.load();
     }
 
     bool running = true;
     uint previousTime = SDL_GetTicks();
     float lag = 0.0;
 
-    graphics.showWindow();
+    Neon.graphics.showWindow();
 
     while (running) {
         immutable currentTime = SDL_GetTicks();
@@ -159,11 +177,11 @@ void neonRun(Game)(auto ref Game game)
         }
 
         static if (hasDraw) {
-            graphics.clear();
+            Neon.graphics.clear();
 
-            game.draw(graphics, lag / msPerUpdate);
+            game.draw(lag / msPerUpdate);
 
-            graphics.present();
+            Neon.graphics.present();
         }
 
         SDL_Delay(1); // bound it to 1000 fps and greatly reduce CPU usage
