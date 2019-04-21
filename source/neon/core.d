@@ -6,6 +6,7 @@ import bindbc.sdl.image;
 import neon.event;
 import neon.graphics;
 import neon.input;
+import neon.timer;
 import neon.util;
 
 version (NeonNoAutoInit)
@@ -87,6 +88,7 @@ struct Neon
 @safe static:
     private Graphics graphics_;
     private Input input_;
+    private Timer timer_;
 
     Graphics graphics() @nogc nothrow
         out (r; r !is null)
@@ -110,6 +112,18 @@ struct Neon
         in (input !is null)
     {
         input_ = input;
+    }
+
+    Timer timer() @nogc nothrow
+        out (r; r !is null)
+    {
+        return timer_;
+    }
+
+    void timer(Timer timer) @nogc nothrow
+        in (timer !is null)
+    {
+        timer_ = timer;
     }
 }
 
@@ -140,6 +154,7 @@ void neonRun(Game)(auto ref Game game)
     scope(exit) Neon.graphics.deinit();
 
     Neon.input = new Input();
+    Neon.timer = new Timer();
 
     static if (hasLoad) {
         game.load();
@@ -183,12 +198,13 @@ void neonRun(Game)(auto ref Game game)
         static if (hasUpdate) {
             uint maxIters = 5;
             while (lag >= msPerUpdate && --maxIters > 0) {
-
                 static if (is(ReturnType!(game.update) == bool)) {
                     running = game.update();
                 } else {
                     game.update();
                 }
+
+                Neon.timer.update(msPerUpdate);
 
                 lag -= msPerUpdate;
             }
