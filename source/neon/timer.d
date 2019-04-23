@@ -41,7 +41,7 @@ final class Timer
             count
         );
 
-        return handlers_.length;
+        return handlers_.length - 1;
     }
 
     size_t during(in Duration delay, Fun fun, Fun after = null)
@@ -55,7 +55,7 @@ final class Timer
             1
         );
 
-        return handlers_.length;
+        return handlers_.length - 1;
     }
 
     void cancel(in size_t id)
