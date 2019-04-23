@@ -8,15 +8,8 @@ final class Timer
 
     private struct Handler
     {
-        enum Type
-        {
-            After,
-            During,
-            Every,
-        }
-
-        Type type;
-        Fun fun;
+        Fun during;
+        Fun after;
 
         long currentMs;
         long limitMs;
@@ -32,22 +25,16 @@ final class Timer
     private Handler[] handlers_;
 
     size_t after(in Duration delay, Fun fun)
+        in (fun !is null)
     {
-        handlers_ ~= Handler(
-            Handler.Type.After,
-            fun,
-            0,
-            delay.total!"msecs",
-            1
-        );
-
-        return handlers_.length;
+        return during(delay, &noOp, fun);
     }
 
     size_t every(in Duration delay, Fun fun, in uint count = 0)
+        in (fun !is null)
     {
         handlers_ ~= Handler(
-            Handler.Type.Every,
+            &noOp,
             fun,
             0,
             delay.total!"msecs",
@@ -57,11 +44,12 @@ final class Timer
         return handlers_.length;
     }
 
-    size_t during(in Duration delay, Fun fun)
+    size_t during(in Duration delay, Fun fun, Fun after = null)
+        in (fun !is null)
     {
         handlers_ ~= Handler(
-            Handler.Type.During,
             fun,
+            after !is null ? after : &noOp,
             0,
             delay.total!"msecs",
             1
@@ -70,32 +58,33 @@ final class Timer
         return handlers_.length;
     }
 
-    void update(in uint deltaMs)
+    void cancel(in size_t id)
     {
         import std.algorithm.mutation : remove;
+        handlers_ = handlers_.remove(id);
+    }
 
+    void update(in uint deltaMs)
+    {
         for (size_t i = 0; i < handlers_.length; ++i) {
             auto handler = &handlers_[i];
 
             handler.currentMs += deltaMs;
 
-            if (handler.type == Handler.Type.During) {
-                handler.fun();
-            }
+            handler.during();
 
             if (handler.currentMs >= handler.limitMs) {
-                if (handler.type != Handler.Type.During) {
-                    handler.fun();
-                }
+                handler.after();
 
-                if (handler.type == Handler.Type.Every) {
+                if (handler.infinite) {
                     handler.currentMs = 0;
-                }
-
-                if (!handler.infinite && --handler.count == 0) {
-                    handlers_ = handlers_.remove(i);
+                } else if (--handler.count == 0) {
+                    cancel(i);
                 }
             }
         }
     }
+
+    private void noOp()
+    {}
 }
