@@ -85,46 +85,9 @@ void neonDeinit()
 
 struct Neon
 {
-@safe static:
-    private Graphics graphics_;
-    private Input input_;
-    private Timer timer_;
-
-    Graphics graphics() @nogc nothrow
-        out (r; r !is null)
-    {
-        return graphics_;
-    }
-
-    void graphics(Graphics graphics) @nogc nothrow
-        in (graphics !is null)
-    {
-        graphics_ = graphics;
-    }
-
-    Input input() @nogc nothrow
-        out (r; r !is null)
-    {
-        return input_;
-    }
-
-    void input(Input input) @nogc nothrow
-        in (input !is null)
-    {
-        input_ = input;
-    }
-
-    Timer timer() @nogc nothrow
-        out (r; r !is null)
-    {
-        return timer_;
-    }
-
-    void timer(Timer timer) @nogc nothrow
-        in (timer !is null)
-    {
-        timer_ = timer;
-    }
+    static Graphics graphics;
+    static Input input;
+    static Timer timer;
 }
 
 void neonRun(Game)(auto ref Game game)
