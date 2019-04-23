@@ -85,102 +85,100 @@ void neonDeinit()
 
 struct Neon
 {
-    static Graphics graphics;
-    static Input input;
-    static Timer timer;
-}
+static:
+    Graphics graphics;
+    Input input;
+    Timer timer;
 
-void neonRun(Game)(auto ref Game game)
-{
-    import std.range  : isInputRange;
-    import std.traits : ReturnType;
+    void run(Game)(auto ref Game game, in uint msPerUpdate = 10)
+    {
+        import std.range  : isInputRange;
+        import std.traits : ReturnType;
 
-    enum hasLoad   = is(typeof((Game g) => g.load()));
-    enum hasUpdate = is(typeof((Game g) => g.update()));
-    enum hasDraw   = is(typeof((Game g) => g.draw(float.init)));
+        enum hasLoad   = is(typeof((Game g) => g.load()));
+        enum hasUpdate = is(typeof((Game g) => g.update()));
+        enum hasDraw   = is(typeof((Game g) => g.draw(float.init)));
 
-    // TODO: let the user configure this
-    enum msPerUpdate = 10;
+        void fireEvents(T)(SDL_Event e) {
+            import std.traits : isFunction, getSymbolsByUDA, getUDAs;
 
-    void fireEvents(T)(SDL_Event e) {
-        import std.traits : isFunction, getSymbolsByUDA, getUDAs;
-
-        const ev = T.fromSDLEvent(e);
-        static foreach (handler; getSymbolsByUDA!(Game, On!T)) {
-            static if (isFunction!handler) {
-                mixin("game." ~ __traits(identifier, handler) ~ "(ev);");
-            }
-        }
-    }
-
-    Neon.graphics = new Graphics();
-    scope(exit) Neon.graphics.deinit();
-
-    Neon.input = new Input();
-    Neon.timer = new Timer();
-
-    static if (hasLoad) {
-        game.load();
-    }
-
-    bool running = true;
-    uint previousTime = SDL_GetTicks();
-    float lag = 0.0;
-
-    Neon.graphics.showWindow();
-
-    while (running) {
-        immutable currentTime = SDL_GetTicks();
-        immutable elapsedTime = currentTime - previousTime;
-        previousTime = currentTime;
-        lag += elapsedTime;
-
-        // TODO: handle events properly
-        SDL_Event e;
-
-        while (SDL_PollEvent(&e)) {
-            switch (e.type) {
-                case SDL_QUIT:
-                    running = false;
-                    break;
-
-                case SDL_KEYDOWN:
-                    Neon.input.keyDown(e.key.keysym.scancode);
-                    fireEvents!KeyPressedEvent(e);
-                    break;
-
-                case SDL_KEYUP:
-                    Neon.input.keyUp(e.key.keysym.scancode);
-                    fireEvents!KeyReleasedEvent(e);
-                    break;
-
-                default: break;
-            }
-        }
-
-        static if (hasUpdate) {
-            uint maxIters = 5;
-            while (lag >= msPerUpdate && --maxIters > 0) {
-                static if (is(ReturnType!(game.update) == bool)) {
-                    running = game.update();
-                } else {
-                    game.update();
+            const ev = T.fromSDLEvent(e);
+            static foreach (handler; getSymbolsByUDA!(Game, On!T)) {
+                static if (isFunction!handler) {
+                    mixin("game." ~ __traits(identifier, handler) ~ "(ev);");
                 }
-
-                Neon.timer.update(msPerUpdate);
-
-                lag -= msPerUpdate;
             }
         }
 
-        static if (hasDraw) {
-            Neon.graphics.clear();
+        graphics = new Graphics();
+        scope(exit) graphics.deinit();
 
-            game.draw(lag / msPerUpdate);
+        input = new Input();
+        timer = new Timer();
 
-            Neon.graphics.present();
+        static if (hasLoad) {
+            game.load();
         }
 
-        SDL_Delay(1); // bound it to 1000 fps and greatly reduce CPU usage
+        bool running = true;
+        uint previousTime = SDL_GetTicks();
+        float lag = 0.0;
+
+        graphics.showWindow();
+
+        while (running) {
+            immutable currentTime = SDL_GetTicks();
+            immutable elapsedTime = currentTime - previousTime;
+            previousTime = currentTime;
+            lag += elapsedTime;
+
+            // TODO: handle events properly
+            SDL_Event e;
+
+            while (SDL_PollEvent(&e)) {
+                switch (e.type) {
+                    case SDL_QUIT:
+                        running = false;
+                        break;
+
+                    case SDL_KEYDOWN:
+                        input.keyDown(e.key.keysym.scancode);
+                        fireEvents!KeyPressedEvent(e);
+                        break;
+
+                    case SDL_KEYUP:
+                        input.keyUp(e.key.keysym.scancode);
+                        fireEvents!KeyReleasedEvent(e);
+                        break;
+
+                    default: break;
+                }
+            }
+
+            static if (hasUpdate) {
+                uint maxIters = 5;
+                while (lag >= msPerUpdate && --maxIters > 0) {
+                    static if (is(ReturnType!(game.update) == bool)) {
+                        running = game.update();
+                    } else {
+                        game.update();
+                    }
+
+                    timer.update(msPerUpdate);
+
+                    lag -= msPerUpdate;
+                }
+            }
+
+            static if (hasDraw) {
+                graphics.clear();
+
+                game.draw(lag / msPerUpdate);
+
+                graphics.present();
+            }
+
+            SDL_Delay(1); // bound it to 1000 fps and greatly reduce CPU usage
+        }
     }
 }
