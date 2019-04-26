@@ -4,10 +4,13 @@ import core.time : Duration;
 
 final class Timer
 {
+    alias Id  = size_t;
     alias Fun = void delegate();
 
     private struct Handler
     {
+        Id id;
+
         Fun during;
         Fun after;
 
@@ -23,17 +26,19 @@ final class Timer
     }
 
     private Handler[] handlers_;
+    private Id nextId_;
 
-    size_t after(in Duration delay, Fun fun)
+    Id after(in Duration delay, Fun fun)
         in (fun !is null)
     {
         return during(delay, &noOp, fun);
     }
 
-    size_t every(in Duration delay, Fun fun, in uint count = 0)
+    Id every(in Duration delay, Fun fun, in uint count = 0)
         in (fun !is null)
     {
         handlers_ ~= Handler(
+            nextId_,
             &noOp,
             fun,
             0,
@@ -41,13 +46,14 @@ final class Timer
             count
         );
 
-        return handlers_.length - 1;
+        return nextId_++;
     }
 
-    size_t during(in Duration delay, Fun fun, Fun after = null)
+    Id during(in Duration delay, Fun fun, Fun after = null)
         in (fun !is null)
     {
         handlers_ ~= Handler(
+            nextId_,
             fun,
             after !is null ? after : &noOp,
             0,
@@ -55,17 +61,20 @@ final class Timer
             1
         );
 
-        return handlers_.length - 1;
+        return nextId_++;
     }
 
-    void cancel(in size_t id)
+    void cancel(in Id id)
     {
-        import std.algorithm.mutation : remove;
-        handlers_ = handlers_.remove(id);
+        import std.algorithm : countUntil, remove;
+
+        handlers_ = handlers_.remove(handlers_.countUntil!"a.id == b"(id));
     }
 
     void update(in uint deltaMs)
     {
+        import std.algorithm.mutation : SwapStrategy, remove;
+
         for (size_t i = 0; i < handlers_.length; ++i) {
             auto handler = &handlers_[i];
 
@@ -79,7 +88,7 @@ final class Timer
                 if (handler.infinite) {
                     handler.currentMs = 0;
                 } else if (--handler.count == 0) {
-                    cancel(i);
+                    handlers_ = handlers_.remove!(SwapStrategy.stable)(i);
                 }
             }
         }
