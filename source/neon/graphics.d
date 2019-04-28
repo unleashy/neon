@@ -172,6 +172,12 @@ final class Graphics
         SDL_RenderCopy(renderer_, image.tex_, null, &rect);
     }
 
+    void draw(Image image, in Coord at, in Rect clip)
+    {
+        SDL_Rect rect = SDL_Rect(at.x, at.y, clip.w, clip.h);
+        SDL_RenderCopy(renderer_, image.tex_, cast(SDL_Rect*) &clip, &rect);
+    }
+
     void fillRect(in Rect rect)
     {
         SDL_Rect sdlR = cast(SDL_Rect) rect;
