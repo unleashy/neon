@@ -89,6 +89,7 @@ static:
     Graphics graphics;
     Input input;
     Timer timer;
+    uint msPerUpdate;
 
     void run(Game)(auto ref Game game, in uint msPerUpdate = 10)
     {
@@ -109,6 +110,8 @@ static:
                 }
             }
         }
+
+        Neon.msPerUpdate = msPerUpdate;
 
         graphics = new Graphics();
         scope(exit) graphics.deinit();
