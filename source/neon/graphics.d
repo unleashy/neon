@@ -11,11 +11,16 @@ struct Dimension
     uint height;
 }
 
-struct Coord
+struct CoordOf(T)
 {
-    int x;
-    int y;
+    import std.traits : isNumeric;
+    static assert(isNumeric!T, "T must be numeric");
+
+    T x = 0;
+    T y = 0;
 }
+
+alias Coord = CoordOf!int;
 
 struct Rect
 {
