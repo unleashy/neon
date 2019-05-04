@@ -1,16 +1,15 @@
 module neon.timer;
 
 import core.time : Duration;
+import std.uuid  : UUID;
 
 final class Timer
 {
-    alias Id  = size_t;
+    alias Id  = UUID;
     alias Fun = void delegate();
 
     private struct Handler
     {
-        Id id;
-
         Fun during;
         Fun after;
 
@@ -25,8 +24,7 @@ final class Timer
         }
     }
 
-    private Handler[] handlers_;
-    private Id nextId_;
+    private Handler[Id] handlers_;
 
     Id after(in Duration delay, Fun fun)
         in (fun !is null)
@@ -37,8 +35,9 @@ final class Timer
     Id every(in Duration delay, Fun fun, in uint count = 0)
         in (fun !is null)
     {
-        handlers_ ~= Handler(
-            nextId_,
+        auto id = makeId();
+
+        handlers_[id] = Handler(
             &noOp,
             fun,
             0,
@@ -46,14 +45,15 @@ final class Timer
             count
         );
 
-        return nextId_++;
+        return id;
     }
 
     Id during(in Duration delay, Fun fun, Fun after = null)
         in (fun !is null)
     {
-        handlers_ ~= Handler(
-            nextId_,
+        auto id = makeId();
+
+        handlers_[id] = Handler(
             fun,
             after !is null ? after : &noOp,
             0,
@@ -61,23 +61,17 @@ final class Timer
             1
         );
 
-        return nextId_++;
+        return id;
     }
 
     void cancel(in Id id)
     {
-        import std.algorithm : countUntil, remove;
-
-        handlers_ = handlers_.remove(handlers_.countUntil!"a.id == b"(id));
+        handlers_.remove(id);
     }
 
     void update(in uint deltaMs)
     {
-        import std.algorithm.mutation : SwapStrategy, remove;
-
-        for (size_t i = 0; i < handlers_.length; ++i) {
-            auto handler = &handlers_[i];
-
+        foreach (id, ref handler; handlers_) {
             handler.currentMs += deltaMs;
 
             handler.during();
@@ -88,10 +82,17 @@ final class Timer
                 if (handler.infinite) {
                     handler.currentMs = 0;
                 } else if (--handler.count == 0) {
-                    handlers_ = handlers_.remove!(SwapStrategy.stable)(i);
+                    cancel(id);
                 }
             }
         }
+    }
+
+    private Id makeId()
+    {
+        import std.uuid : randomUUID;
+
+        return randomUUID();
     }
 
     private void noOp()
