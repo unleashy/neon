@@ -72,6 +72,13 @@ struct Image
     }
 }
 
+enum FlipTransform
+{
+    none,
+    horizontal,
+    vertical
+}
+
 final class Graphics
 {
     private immutable(char)* name_;
@@ -181,6 +188,27 @@ final class Graphics
     {
         SDL_Rect rect = SDL_Rect(at.x, at.y, clip.w, clip.h);
         SDL_RenderCopy(renderer_, image.tex_, cast(SDL_Rect*) &clip, &rect);
+    }
+
+    void draw(Image image, in Coord at, in Rect clip, in FlipTransform flip)
+    {
+        SDL_RendererFlip sdlFlip;
+        final switch (flip) with (FlipTransform) {
+            case none:       sdlFlip = SDL_FLIP_NONE; break;
+            case horizontal: sdlFlip = SDL_FLIP_HORIZONTAL; break;
+            case vertical:   sdlFlip = SDL_FLIP_VERTICAL; break;
+        }
+
+        SDL_Rect rect = SDL_Rect(at.x, at.y, clip.w, clip.h);
+        SDL_RenderCopyEx(
+            renderer_,
+            image.tex_,
+            cast(SDL_Rect*) &clip,
+            &rect,
+            0.0,
+            null,
+            sdlFlip
+        );
     }
 
     void fillRect(in Rect rect)
