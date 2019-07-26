@@ -10,7 +10,7 @@
     "targetPath": "bin",
 
     "dependencies": {
-        "bindbc-sdl": "~>0.6.1"
+        "bindbc-sdl": "~>0.10.1"
     },
 
     "versions": ["BindSDL_Image"]
